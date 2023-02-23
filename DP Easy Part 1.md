@@ -44,7 +44,7 @@ class Solution:
 ## Thought Process
 These two problems are identical except that the second is a continuous loop, meaning that the first and last houses are adjacent. This seems like a complicated change but has an extremely simple solution. I wrote nearly the exact same code as Neetcode, except in House Robber II; I didn't refactor my code like I should have. I'm adding both tho for completeness. 
 
-Luckily, these also follow a similar concept to the stairs problems above. Take the first step, a trivial case; the max value is going to be the value of the house. Now, what if there are two houses? If the second house's value is greater than the first house's, the we want to select the second house as the primary option. Adding a third house is where we see the formula more clearly. For the third house, we can either skip it and only visit the second house, or we can visit the first house and then the third house. We want the maximum of this decision. Therefore, the optimal path for **x** house is the max between **x-1** house and **x + x-2" houses. And this will continue to hold up for all the houses we visit, as long as we don't connect the first and last house. So Problem 2 now!
+Luckily, these also follow a similar concept to the stairs problems above. Take the first step, a trivial case; the max value is going to be the value of the house. Now, what if there are two houses? If the second house's value is greater than the first house's, the we want to select the second house as the primary option. Adding a third house is where we see the formula more clearly. For the third house, we can either skip it and only visit the second house, or we can visit the first house and then the third house. We want the maximum of this decision. Therefore, the optimal path for **x<sup>th</sup>** house is the max between **(the optimal cost for x-1<sup>th</sup>)** house and **(The cost of x<sup>th</sup> + the optimal cost of x-2<sup>th</sup>)** houses. And this will continue to hold up for all the houses we visit, as long as we don't connect the first and last house. So Problem 2 now!
 
 This is actually surprsingly simple if you think about it. There are three outcomes possible: Either we take from the first house, the last house, or neither. Tackling the first outcome, if we just exclude the last house, then it just becomes the House Robber I problem again! The same is true for the second outcome; if we exclude the first house, we run House Robber I again. Now how do we account for when we don't include either? We already have! Our solution will naturally exclude whichever house we included if it's not part of the optimal scheme, and the other was already excluded manually. So we can just return the max value between these two outcomes. Both of these solutions have O(N) time complexity and O(1) space complexity.
 
@@ -86,4 +86,45 @@ class Solution:
             rob1 = rob2
             rob2 = newRob
         return rob2
+```
+
+# 5 & 647, Longest Palindromic Substrings and Palindromic Substrings
+
+## Problem Statements
+---
+> Problem I: Give a string s, return *the longest* palindromic substring.
+> 
+> Problem II: Given a string s, return _the number of **palindromic substrings** in it_.
+---
+
+## Thought Process
+Right off the bat, we should clarify that palindromes are strings that reads the same when backwards as when forwards. Substrings are _continuous and unbroken_ sets of strings within a main string. Note that a substring isn't required to be smaller than the main string. For example, a substring of "Cheese" could not only be "hee" but also "Cheese".
+
+Another important thing to clarify for Problem 1 is how we should handle palindromic substrings of the same length. Are both valid, or should we be prioritizing the first one we encountered when going from left to right, or the last one? My solution assumes that both are valid and it doesn't matter which one you return, but this can be adjusted for any of the cases by modifying the IF-statement in the FOR-loop in longestPalindrom.
+
+
+```
+class Solution:
+    def longestPalindrome(self, s: str) -> str:
+        def palindrome_length_check(s: str, left: int, right: int) -> int:
+            while left >= 0 and right < len(s) and s[left] == s[right]:
+                left -= 1
+                right += 1
+            return right - left - 1
+        
+        start_ind, end_ind = 0, 0
+        for i in range(len(s)):
+            odd_length = palindrome_length_check(s, i, i)
+            even_length = palindrome_length_check(s, i, i + 1)
+            
+            largest_length = max(odd_length, even_length)
+            if largest_length >  end_ind - start_ind:
+                start_ind = i - (largest_length - 1) // 2   # These index calcs were a bit tricky to fully comprehend, at least for me
+                end_ind = i + 1 + largest_length // 2       # The 1 is added because slicing the string doesn't include the last index, so we go one beyond
+        return s[start: end]
+
+```
+
+
+
 
