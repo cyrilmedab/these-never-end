@@ -21,6 +21,8 @@ class Solution:
             temp = curr
             curr = prev + curr
             prev = temp
+            # NOTE: In python, these three lines can be condensed into curr, prev = curr + prev, curr
+            # However, under the hood, it's doing basically the same process, so I thought writing it out makes it more clear
         return curr
         
     def minCostClimbingStairs(self, cost: List[int]) -> int:
@@ -100,12 +102,23 @@ class Solution:
 ## Thought Process
 Right off the bat, we should clarify that palindromes are strings that reads the same when backwards as when forwards. Substrings are _continuous and unbroken_ sets of strings within a main string. Note that a substring isn't required to be smaller than the main string. For example, a substring of "Cheese" could not only be "hee" but also "Cheese".
 
-Another important thing to clarify for Problem 1 is how we should handle palindromic substrings of the same length. Are both valid, or should we be prioritizing the first one we encountered when going from left to right, or the last one? My solution assumes that both are valid and it doesn't matter which one you return, but this can be adjusted for any of the cases by modifying the IF-statement in the FOR-loop in longestPalindrom.
+Another important thing to clarify for Problem 1 is how we should handle palindromic substrings of the same length. Are both valid, or should we be prioritizing the first one we encountered when going from left to right, or the last one? My solution assumes that both are valid and it doesn't matter which one you return, but this can be adjusted for any of the cases by modifying the IF-statement in the FOR-loop in longest_palindrome.
 
+One final ~~thought~~ rant before gettting into the solutions. These are odd because Neetcode and Leetcode both classify these as Dynamic Programming problems, but for both of them, the dynamic programming solutions are not the most optimal nor (in my opinion) the easier method to implement (at least for what you'll probably use in an interview). Unless the expanding around the center method is Dynamic and I'm misunderstanding? Though these are absolutely the gold standard for solving an questions relating to palindromes. The solutions articles for these two problems alone made Leetcode premium worth it; in addition into a deep dive on different approaches, the articles even suggest a specific algorithm (Manacher's algorithm) that can solve these questions in linear time and constant space, as opposed to the more plausible solutions to come up with in an interview that take O(N<sup>2</sup>) and constant O(1) space. I'd really like to do a deep dive and showcase that algorithm, beacause if you can nail it down, every palindrome question will be easy. And would be an insanely impressive solution during an interview. But not rn.
+
+The fundamental concept for both of these solutions consists of identifying palindromes by expanding from a "center". You loop through each character in the string, at at each character, you perform a test to see if the character is the center of a palindrome. If it is, you then take a look at its neighboring characters too see if they match and also form a palindrome. Note that this would only account for odd-length palindromes. For even-lengths, we can take a look at the next character to the right of the current center (assuming we're progressing from left to right), and we can treat both that next character and the current characters as the centers of the even-length palindrome. After understanding this concept, the additional aspects of both of these problems become trivial.
+
+Both of these problems will have an O(N<sup>2</sup>) time complexity and constant O(1) space.
+
+For the first problem, our helper function palindrome_length_check will return the length of the palindrome identified. We call the helper to test for both an even and an odd length and then determine the max of the two. If this new value is greater than our previous max length, then we update our start and end indices. 
+
+Why are we using the indices? If you see Neetcode's solution, he stores the string directly, and his method (if refactored correctly, which it should be since there's a lot of duplicate code) would result in less and maybe easier to follow code. However, splicing the string each time is more performance intensive thatn simply storing two integer values, and in the worst cases, a noticeable performance issue would exist. So, it should be better to use the first approach, or maybe combine them if there's an even simpler way I'm mising. During an interview, definitely would be good to explain this thought. 
+
+For the second problem, the helper function remains mostly the same, except instead of determining length, we increment a counter for each successful calendar. Then we call this helper for both odd and even length possibilities as we loop through each character in the string, adding the results. The code for this one is essentially the same as Neetcode's solution, with the only real differences being variable names, so I didn't include his here.
 
 ```
-class Solution:
-    def longestPalindrome(self, s: str) -> str:
+class Problem1Solution:
+    def longest_palindrome(self, s: str) -> str:
         def palindrome_length_check(s: str, left: int, right: int) -> int:
             while left >= 0 and right < len(s) and s[left] == s[right]:
                 left -= 1
@@ -120,9 +133,49 @@ class Solution:
             largest_length = max(odd_length, even_length)
             if largest_length >  end_ind - start_ind:
                 start_ind = i - (largest_length - 1) // 2   # These index calcs were a bit tricky to fully comprehend, at least for me
-                end_ind = i + 1 + largest_length // 2       # The 1 is added because slicing the string doesn't include the last index, so we go one beyond
-        return s[start: end]
+                end_ind = i + largest_length // 2       
+        return s[start: end + 1] # The 1 is added because slicing the string doesn't include the last index, so we go one beyond
+        
+    def neetcodes_longest_palindrome(self, s: str) -> str:
+        res = ""
+        resLen = 0
 
+        for i in range(len(s)):
+            # odd length
+            l, r = i, i
+            while l >= 0 and r < len(s) and s[l] == s[r]:
+                if (r - l + 1) > resLen:
+                    res = s[l : r + 1]
+                    resLen = r - l + 1
+                l -= 1
+                r += 1
+
+            # even length
+            l, r = i, i + 1
+            while l >= 0 and r < len(s) and s[l] == s[r]:
+                if (r - l + 1) > resLen:
+                    res = s[l : r + 1]
+                    resLen = r - l + 1
+                l -= 1
+                r += 1
+
+        return res
+
+class Problem2Solution:
+    def count_palindromes(self, s: str) -> int:
+        def palindrome_counter(s: str, left: int, right: int) -> int:
+            counter = 0;
+            while left >= 0 and right < len(s) and s[left] == s[right]:
+                left -= 1
+                right += 1
+                counter += 1
+            return counter
+        
+        counter = 0
+        for i in range(len(s)):
+            counter += palindrome_counter(s, i, i) + palindrome_counter(s, i, i + 1)
+        return counter
+          
 ```
 
 
