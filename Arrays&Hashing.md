@@ -67,6 +67,7 @@ class Solution:
 ## Problem Statement
 ---
 > Problem I: Given two strings s and t, return true if t is an anagram of s, and false otherwise. An Anagram is a word or phrase formed by rearranging the letters of a different word or phrase, typically using all the original letters exactly once.
+> 
 > Problem II: Given two strings s and t, return true if t is an anagram of s, and false otherwise. An Anagram is a word or phrase formed by rearranging the letters of a different word or phrase, typically using all the original letters exactly once.
 ---
 
@@ -253,7 +254,7 @@ This is the easiest approach to come up with and remember, but apparently Google
 
 This solution follows the same principle as we did for our initial solution. However, this time we're converting the length of the string/word/chunk into a 4 bytes string. That's all, but the code looks hella confusing. 
 
-Honestly nah, fuck that. If you want to learn this one, google it yourself. Here's a comment that helped me understand tho ![image](https://user-images.githubusercontent.com/118993796/224221476-0485eb9f-ac96-4dc7-8b98-cb74d6f793f6.png)
+Honestly nah, fuck that. If you want to learn this one, google it yourself, ya dumbass. Here's a comment that helped me understand tho ![image](https://user-images.githubusercontent.com/118993796/224221476-0485eb9f-ac96-4dc7-8b98-cb74d6f793f6.png)
 
 ```
 class Codec:
@@ -326,4 +327,286 @@ class BytesCodec:
         return output
 ```
 
-# Top K Frequent Elements
+# 347, Top K Frequent Elements
+
+## Problem Statement
+---
+> Problem I: Given an integer array nums and an integer k, return the k most frequent elements. You may return the answer in any order.
+---
+
+## Thought Process
+
+There's a heap solution to this with O(Nlogk) time complexity and the same linear space complexity as the quick select method, but I don't really want to bother with that when honestly, quick select should be my first though when looking at these kind of problems. 
+
+I need to drill quick select and lomuto's partition into my head until I start having sexually confusiing dreams about them. It's not that difficult, but for some reason, it keeps slipping out of my mind every time. Quick select follows the same process as quicksort, a sorting algorithm with O(NlogN) time complexity. However, because we're only going to care about half of the array (the kth section), we don't need to sort the entire array and can reduce it down to linear time **in the average case**. In the worst case, where the partion keeps selecting the largest element and having to sort through the entire array, quick select runs in O(N^2) time. However, this is negligible for the most part.
+
+Lomuto's partition is a really simple parition algorithm that will select a random pivot. I instead just choose the rightmost point as the pivot index, but as shown in Leetcode's official solution, you can randomize this selection very easily. The only extra step after randomizing the index would be swapping the random index's position with the rightmost position.
+
+We want to find the kth most frequent elements in the array. We can clarify with the interviewer that k must be less than the number of unique elements in the array. We can also ask how we should be handling ties; would we need to only include one of them, can we include all the elements that tie, and if we can only include of the tied elements, is there a criteria for selecting which one we include.
+
+The step after that would be to figure out the frequencies. We can iterate through the array and add each new value we see to a dictionary of ints. Each time we see a value that is already in the dictionary, we can increment the value paired with that key by one. So after the iteration, we then have a dictionary containing every unique element and the amount of times each appeared in the input array. The last step for this part is to take all the keys of the dictionary and store them in a new list; this gives us a list with only unique elements, like a set. We don't want to use a set, however, because then we can't iterate through it.
+
+For quickselect, we know that the index that the kth most frequent element will be at (when the array is sorted) will be the length of the new list we just created - k. We can sotre that really quickly, and then initialize two pointers at the first and last index of the list.
+
+You can create separate helper functions for the partions and quickselect, like Leetcode did, and you can also do it recursively, but I found my solution a bit easier to follow and simpler. The folowing is a quick reminder of quickselect. Google it if you need more details, but hopefully at this point it's either engrained in my memory or I can glance at the code and remember. 
+
+Set another pointer to the leftmost index and store the frequency value of the right pointer's setlist value. Run quickselect and swap values as needed. Once you've iterated through the setlist, you should have the pivot values (the value of the right pointer that we assigned at the start) moved towards a central location. We can then check the three conditionals that are critical to quickselect.
+
+If the pivot index now equals the kth index that we're looking for, we can return all the values from the pivot index to the end of the setlist array. If the kth index is greater (meaning that there should be less elements that we'll eventually be returning), we'll need to again sort through the right half of the array, and we can move our left pointer to the pivot index + 1. And the exact opposite if the kth index is less than the pivot index. We need to keep sorting the left half, and should move the right pointer to the pivot index - 1.
+
+```
+class Solution:
+    def topKFrequent(self, nums: List[int], k: int) -> List[int]:
+        # This builds a counter of how many times a given element appears in the input array
+        # and can be used as our "value assessor" for the quick select
+        frequencies = collections.defaultdict(int)
+        for num in nums:
+            frequencies[num] += 1
+        nums_setlist = list(frequencies.keys())
+
+        k_index = len(nums_setlist) - k
+        left, right = 0, len(nums_setlist) - 1
+        
+        
+        while left < right:
+            point_ind = left
+            point_freq = frequencies[nums_setlist[right]]
+
+            for i in range(left, right):
+                if frequencies[nums_setlist[i]] < point_freq:
+                    nums_setlist[i], nums_setlist[point_ind] = nums_setlist[point_ind], nums_setlist[i]
+                    point_ind += 1
+
+            nums_setlist[point_ind], nums_setlist[right] = nums_setlist[right], nums_setlist[point_ind]
+            if point_ind == k_index:
+                return nums_setlist[k_index: ]
+            elif point_ind > k_index:
+                right = point_ind - 1
+            elif point_ind < k_index:
+                left = point_ind + 1
+
+        return nums_setlist[k_index: ]
+
+from collections import Counter
+class Leetcode_Solution:
+    def topKFrequent(self, nums: List[int], k: int) -> List[int]:
+        count = Counter(nums)
+        unique = list(count.keys())
+        
+        def partition(left, right, pivot_index) -> int:
+            pivot_frequency = count[unique[pivot_index]]
+            # 1. move pivot to end
+            unique[pivot_index], unique[right] = unique[right], unique[pivot_index]  
+            
+            # 2. move all less frequent elements to the left
+            store_index = left
+            for i in range(left, right):
+                if count[unique[i]] < pivot_frequency:
+                    unique[store_index], unique[i] = unique[i], unique[store_index]
+                    store_index += 1
+
+            # 3. move pivot to its final place
+            unique[right], unique[store_index] = unique[store_index], unique[right]  
+            
+            return store_index
+        
+        def quickselect(left, right, k_smallest) -> None:
+            """
+            Sort a list within left..right till kth less frequent element
+            takes its place. 
+            """
+            # base case: the list contains only one element
+            if left == right: 
+                return
+            
+            # select a random pivot_index
+            pivot_index = random.randint(left, right)     
+                            
+            # find the pivot position in a sorted list   
+            pivot_index = partition(left, right, pivot_index)
+            
+            # if the pivot is in its final sorted position
+            if k_smallest == pivot_index:
+                 return 
+            # go left
+            elif k_smallest < pivot_index:
+                quickselect(left, pivot_index - 1, k_smallest)
+            # go right
+            else:
+                quickselect(pivot_index + 1, right, k_smallest)
+         
+        n = len(unique) 
+        # kth top frequent element is (n - k)th less frequent.
+        # Do a partial sort: from less frequent to the most frequent, till
+        # (n - k)th less frequent element takes its place (n - k) in a sorted array. 
+        # All element on the left are less frequent.
+        # All the elements on the right are more frequent.  
+        quickselect(0, n - 1, n - k)
+        # Return top k frequent elements
+        return unique[n - k:]
+```
+
+# 36, Valid Sudoku
+
+## Problem Statement:
+---
+> Problem I: Determine if a 9 x 9 Sudoku board is valid. Only the filled cells need to be validated according to the following rules: Each row must contain the digits 1-9 without repetition. Each column must contain the digits 1-9 without repetition. Each of the nine 3 x 3 sub-boxes of the grid must contain the digits 1-9 without repetition.
+> 
+> Note: A Sudoku board (partially filled) could be valid but is not necessarily solvable. Only the filled cells need to be validated according to the mentioned rules.
+---
+
+## Thought Process
+
+This one seems really intimidating, and maybe that's the goal, but your first intuition might be right in this case: we're using 3 separate dictionaries of sets, for the rows, columns, and squares. 
+
+After accepting that you have to use these large dictionaries to store everything, the most difficult part is how to properly index the square grids, but that's easily solved by **floor dividing** the row and column we're looking at by 3. Floor diving means that we're getting the lowest integer and not any decimals. So let's say we look at the first three rows in the first column: (0,0), (1,0), and (2, 0). Floor dividing them by three gives us (0,0), (0,0), and (0,0). So they'd all be in the same grid, as we can see. If we looked at the 4th row (which is index 3) the 3 would divide to get 1, meaning those would be stored in a different square reference in our dictionary. We want to use both the row and column value to get our keys for the square dictionary, which means we should store them as a tuple. 
+
+After figuring all this out, we just need to iterate through every grid in the array using 2 for-loops. If we hit a value, we can check if they're in any of the sets. If they aren't we add them to all three of the sets at their respective values. If they are in any one of the sets, we instantly return False, since that can't occur for a valid sudoku board.
+
+Finally, we can return true if we've gone through every grid and haven't found a violation that made us return false.
+
+Note: This gives us an O(N^2) time complexity and requires an O(N^2) space complexity as well, although you can easily argue that both are constant since N will always be 9. Technically, you can reduce the space complexity to O(N) by passing over the board 3 times instead of trying to do everything in a single pass. So this would in actuality greatly increase the performance time of the algorithm but it technically keeps the same time complexity. If you went with this constant space solution, you would reset the set each time you check a row. Then move on to the columns, resetting after each finished column. It's essentially like brute forcing the solution. 
+
+There is an O(N) space complexity using bitmasking that I need to learn. Neetcode didn't even mention this approach, so I didn't notice it until looking through Leetcode Premium's solution. I haven't attempted it, so let's go over it here.
+
+Actually holy fuck, I love the bitmasking solution, it's neat. Full disclosure, I honestly don't know how to work with bits yet, I'm still working my way through all the data structures, so this is probably pretty normal and expected. BUT, with the bit masking, you can solve this in a single pass over the grid with an O(N^2) time complexity and an O(N) space complexity. AND, if you do it in a triple pass, you could technically solve it with the same time complexity but a constant O(1) space complexity. Shit's awesome. I don't want to type it all out tho, so here's a pic: ![image](https://user-images.githubusercontent.com/118993796/224460089-3b66877b-4ae3-4899-833f-a95ecccd78eb.png)
+
+I'm also going to include the hard Leetcode problem to solve a sudoku board, just cause I liked it and found this one interseting. It's a backtracking problemt that's very straightforward. 
+
+```
+class Solution:
+    def isValidSudoku(self, board: List[List[str]]) -> bool:
+        rows = collections.defaultdict(set)
+        cols = collections.defaultdict(set)
+        squares = collections.defaultdict(set)
+
+        for row in range(len(board)):
+            for col in range(len(board[0])):
+                curr_val = board[row][col]
+                if curr_val == ".":
+                    continue
+                if curr_val in rows[row] or curr_val in cols[col] or curr_val in squares[(row//3, col//3)]:
+                    return False
+                rows[row].add(curr_val)
+                cols[col].add(curr_val)
+                squares[(row//3, col//3)].add(curr_val)
+        return True
+    
+    # Bitmasking solution
+    def isValidSudoku(self, board: List[List[str]]) -> bool:
+        size = len(board)
+
+        rows = [0] * size
+        cols = [0] * size
+        squares = [0] * size
+
+        for row in range(size):
+            for col in range(size):
+                if board[row][col] == ".":
+                    continue
+                
+                val = int(board[row][col]) - 1
+
+                box_index = (row // 3) * 3 + (col // 3)
+                if (rows[row] & (1 << val)) or (cols[col] & (1 << val)) or (squares[box_index] & (1 << val)):
+                    return False
+
+                rows[row] |= 1 << val
+                cols[col] |= 1 << val
+                squares[box_index] |= 1 << val
+                
+        return True
+        
+class Solution:
+    def solveSudoku(self, board: List[List[str]]) -> None:
+        """
+        Do not return anything, modify board in-place instead.
+        """
+        def can_place(num, row, col):
+            return not (num in rows[row] or num in cols[col] or \
+                    num in squares[box_index(row, col)])
+        
+        def place_num(num, row, col):
+            rows[row].add(num)
+            cols[col].add(num)
+            squares[box_index(row, col)].add(num)
+            board[row][col] = str(num)
+        
+        def remove_num(num, row, col):
+            rows[row].remove(num)
+            cols[col].remove(num)
+            squares[box_index(row, col)].remove(num)
+            board[row][col] = '.'
+        
+        def place_next(row, col):
+            if row == N - 1 and col == N - 1:
+                nonlocal sudoku_solved
+                sudoku_solved = True
+            else:
+                if col == N - 1:
+                    backtrack(row + 1, 0)
+                else:
+                    backtrack(row, col + 1)
+        
+        def backtrack(row = 0, col = 0):
+            if board[row][col] == '.':
+                for num in range(1, 10):
+                    if can_place(num, row, col):
+                        place_num(num, row, col)
+                        place_next(row, col)
+                        if not sudoku_solved:
+                            remove_num(num, row, col)
+            else:
+                place_next(row, col)
+        
+        n = 3
+        N = n**2
+        box_index = lambda row, col: (row // n) * n + (col // n)
+
+        rows = [set() for i in range(N)]
+        cols = [set() for i in range(N)]
+        squares = [set() for i in range(N)]
+        for row in range(N):
+            for col in range(N):
+                if board[row][col] == '.': 
+                    continue
+                num = int(board[row][col])
+                place_num(num, row, col)
+        
+        sudoku_solved = False
+        backtrack() 
+```
+
+# 128, Longest Consecutive Sequence
+
+## Problem Statement
+---
+> Problem I: Given an unsorted array of integers nums, return the length of the longest consecutive elements sequence. You must write an algorithm that runs in O(n) time.
+---
+
+## Thought Process 
+
+The last of the Arrays and Hashing problems (from Neeetcode's 150). I feel like this is definitely more tricky than it seems, but like most of the previous problems, the answer lies with (gasp) sets. Also, ik I'm incredibly stupid, but I legitimately just processed that the reason so many of these solutions involved sets is because this is a section about Arrays and Hashing. Hashing. As in, hash sets. And I just put this together. Do I not have basic reading comprehension like dude.
+
+Anyways, you can drop all of the elements in the given input array into a set. Then, we can do a for-loop for every element in the set. At each element, we're going to set a counter value to 1 (representing the element that we're on being a sequence on its own). Then we can enter a while lopp and check to see if the number after our current num (num + 1) is in the set. If it is, then we increment our counter and check if num + 2, etc. Once we break out of the while loop, we can check to see if our counter is greeater than our stored value for the max length.
+
+At this point, we have an O(N^2) solution. This is because our algorithm checks every instance in a chain multiple times. For example, take [1, 2, 3, 4]. Our algorithm, starting at 1, will detect a max length of 4. But then it continues and starting at 2, detects a max length of 3. But we already know that 2, 3, and 4 won't beat our max length because they were already part of the sequence that did. How do we avoid checking them?
+
+We can reduce our time complexity down to O(N) by adding an if-statement that only checks for the sequence length if the number before the current num (aka num - 1) isn't in the set. That means we'll only bother with each element in the set once.
+
+```
+class Solution:
+    def longestConsecutive(self, nums: List[int]) -> int:
+        uniques = set(nums)
+
+        max_length = 0
+        for num in uniques:
+            if num - 1 in uniques: continue
+            
+            curr_length = 0
+            while num in uniques:
+                curr_length += 1
+                num += 1
+            max_length = max(max_length, curr_length)
+        return max_length
+```
