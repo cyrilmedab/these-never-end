@@ -53,3 +53,77 @@ class Solution:
                 if partition_sums[target]: return True
         return False
 ```
+
+# 1123 Lowest Common Ancestors of Deepest Leaves
+
+## Problem Statement
+---
+> Given the root of a binary tree, return the lowest common ancestor of its deepest leaves.
+> Recall that:
+>     The node of a binary tree is a leaf if and only if it has no children
+>     The depth of the root of the tree is 0. if the depth of a node is d, the depth of each of its children is d + 1.
+>     The lowest common ancestor of a set S of nodes, is the node A with the largest depth such that every node in S is in the subtree with root A.
+---
+
+## Thought Process
+
+Two paths we can go down, the recursive one is shorter and more performant but the iterative one is the one that I thought of when I first saw this problem. Going to keep it short and sweet.
+
+The iterative approach is to do a level order, BFS traversal of the tree using a queue. At the start of each level, we store the first and last value, or the leftmost and rightmost nodes. When the queue is empty, that means we were just on the deepest level and have the furthest apart nodes on that level. From there, we can either recursively or iteratively call a helper function to find the LCA of the two nodes, should be trivial at this point. I'm going to list both helper methods below.
+
+The time complexity of this approach is O(N) and a space complexity of O(N) as well. This is because we'll be hitting every node in the level traversal and worst-case storing every node in the queue. The LCA helper would also require O(N) time and space, for both the iterative and recursive solutions. The downside to this approach, depsite being so intuitive, is that it requires at least 2 passes through the tree, and in the worst case 3.
+
+The recursive approach is a simple DFS, using a helper that returns a tuple containing the maximum depth of a given path and the LCA of that path. The LCA is determined/updated when the left and right paths both have the same max depth. It's a simple solution with O(N) time and space, and it only needs one-pass through the tree. Looking at the code below (it's te first one listed), we can easily see why this is the preferred method, between being much shorter to write and more performant as well.
+
+```
+class Solution:
+    def lcaDeepestLeaves(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        def deepest_recurse_lca(node: Optional[TreeNode]) -> tuple[int, Optional[TreeNode]]:
+            if not node: return 0, None
+            left_depth, left_lca = recursive_lca(node.left)
+            right_depth, right_lca = recursive_lca(node.right)
+
+            if left_depth > right_depth: return left_depth + 1, left_lca
+            elif right_depth > left_depth: return right_depth + 1, right_lca
+            else: return left_depth + 1, node
+        return deepest_recurse_lca(root)[1]
+
+        def iterative_lca(node1: Optional[TreeNode], node2: Optional[TreeNode]) -> Optional[TreeNode]:
+            parents, queue = {root : None}, deque([root])            
+            while node1 not in parents or node2 not in parents:
+                node = queue.popleft()
+                if node.left:
+                    parents[node.left] = node
+                    queue.append(node.left)
+                if node.right:
+                    parents[node.right] = node
+                    queue.append(node.right)
+            
+            parent1, ancestors1 = node1, set()
+            while parent1:
+                ancestors1.add(parent1)
+                parent1 = parents[parent1]
+            
+            lca = node2
+            while lca not in ancestors1: lca = parents[lca]
+            return lca
+
+        def recursive_lca(node: Optional[TreeNode], target1: Optional[TreeNode], target2: Optional[TreeNode]) -> Optional[TreeNode]:     
+            if not node or node == target1 or node == target2: return node
+            left = recursive_lca(node.left, target1, target2)
+            right = recursive_lca(node.right, target1, target2)
+
+            if left and right: return node
+            else: return left or right
+        
+        queue = deque([root])
+        while queue:
+            leftmost, rightmost = queue[0], queue[-1]
+            for _ in range(len(queue)):
+                node = queue.popleft()
+                if node.left: queue.append(node.left)
+                if node.right: queue.append(node.right)
+        return iterative_lca(leftmost, rightmost)
+        return recursive_lca(root, leftmost, rightmost)
+```
+
