@@ -127,3 +127,47 @@ class Solution:
         return recursive_lca(root, leftmost, rightmost)
 ```
 
+# 438 Find All Anagrams in A String
+
+## Problem Statement
+---
+> Given two strings s and p, return an array of all the start indices of p's anagrams in s. You may return the answer in any order.
+> An Anagram is a word or phrase formed by rearranging the letters of a different word or phrase, typically using all the original letters exactly once.
+---
+
+## Thought Process
+It's exactly like all other Anagram problems. This one only uses lowercase English letters, so you can use an array to track the frequencies of characters instead of a dictionary, to reduce the complexity the hashing always brings. Get the count of both strings for length p, and then start iterating through the array and appending the start index when the counts match at 26. Code explains it better since there's really nothing new about this problem.
+
+```
+class Solution:
+    def findAnagrams(self, s: str, p: str) -> List[int]:
+        p_size, s_size = len(p), len(s)
+        start_indices = []
+        if p_size > s_size: return start_indices
+
+        p_count, s_count = [0] * 26, [0] * 26
+        for i in range(p_size):
+            p_ind, s_ind = ord(p[i]) - ord('a'), ord(s[i]) - ord('a')
+            p_count[p_ind] += 1
+            s_count[s_ind] += 1
+        
+        matched = 0
+        for i in range(len(p_count)): 
+            if p_count[i] == s_count[i]: matched += 1
+        if matched == 26: start_indices.append(0)
+
+        for i in range(1, s_size - p_size + 1):
+            remove_ind, add_ind = ord(s[i-1]) - ord('a'), ord(s[i + p_size - 1]) - ord('a')
+
+            s_count[remove_ind] -= 1
+            if s_count[remove_ind] == p_count[remove_ind]: matched += 1
+            elif s_count[remove_ind] == p_count[remove_ind] - 1: matched -= 1
+
+            s_count[add_ind] += 1
+            if s_count[add_ind] == p_count[add_ind]: matched += 1
+            elif s_count[add_ind] == p_count[add_ind] + 1: matched -= 1
+
+            if matched == 26: start_indices.append(i)
+        
+        return start_indices
+```
